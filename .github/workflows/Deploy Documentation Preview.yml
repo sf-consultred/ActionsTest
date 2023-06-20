@@ -19,20 +19,36 @@ jobs:
   deploy-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Test
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      # - uses: actions/checkout@v3
-      # - name: Download built site
-      #   uses: dawidd6/action-download-artifact@v2
-      #   with:
-      #     run_id: ${{ github.event.client_payload.runId }}
-      #     name: preview_site
-      #     path: ./site
-      # - name: Deploy preview
-      #   uses: access-nri/pr-preview-action@v2
-      #   with:
-      #     source-dir: site
-      #     action: deploy
-      #     pr-number: ${{ github.event.client_payload.pr }}
+      - uses: actions/checkout@v3
+      # Will download all artifacts
+      # If artifact name == preview_site, then we have a site to reply
+      # If artifact name == closed_pr_number, then we need to cleanup an old deployment
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          run_id: ${{github.event.workflow_run.id }}
+          path: ./artifacts
+      - name: Check artifact name
+        run: |
+          if [ -d "./artifacts/preview_site" ]; then
+            echo "mode=deploy" >> "$GITHUB_ENV"
+          elif [ -d "./artifacts/closed_pr_number" ]; then
+            echo "mode=clean" >> "$GITHUB_ENV"
+          else
+              echo "Failed to find artifact"
+              exit 1
+          fi
+      - if: ${{ env.mode == 'deploy' }}
+        name: Deploy preview
+        uses: access-nri/pr-preview-action@v2
+        with:
+          source-dir: site
+          action: deploy
+          pr-number: ${{ github.event.client_payload.pr }}
+      - if: ${{ env.mode == 'clean' }}
+        name: Deploy preview
+        uses: access-nri/pr-preview-action@v2
+        with:
+          source-dir: site
+          action: remove
+          pr-number: ${{ github.event.client_payload.pr }}

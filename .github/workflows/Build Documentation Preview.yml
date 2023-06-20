@@ -45,6 +45,6 @@ jobs:
       - run: echo "${{ github.event.number }}" >> ./pr_tmp/.pr_number
       - uses : actions/upload-artifact@v3
         with:
-          name: pr_number
+          name: closed_pr_number
           path: ./pr_tmp
           retention-days: 1
