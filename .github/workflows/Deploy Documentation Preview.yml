@@ -38,17 +38,25 @@ jobs:
               echo "Failed to find artifact"
               exit 1
           fi
+      # Get PR number
+      - if: ${{ env.mode == 'deploy' }}
+        run: echo "pr_number=$(cat ./preview_site/.pr_number)"" >> >> "$GITHUB_ENV"
+
+      - if: ${{ env.mode == 'clean' }}
+        run: echo "pr_number=$(cat ./closed_pr_number/.pr_number)"" >> >> "$GITHUB_ENV"
+
+      # Run deployment
       - if: ${{ env.mode == 'deploy' }}
         name: Deploy preview
         uses: access-nri/pr-preview-action@v2
         with:
-          source-dir: site
+          source-dir: ./artifacts/preview_site
           action: deploy
-          pr-number: ${{ github.event.client_payload.pr }}
+          pr-number: ${{ env.pr_number }}
       - if: ${{ env.mode == 'clean' }}
         name: Deploy preview
         uses: access-nri/pr-preview-action@v2
         with:
           source-dir: site
           action: remove
-          pr-number: ${{ github.event.client_payload.pr }}
+          pr-number: ${{ env.pr_number }}
